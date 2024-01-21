@@ -50,14 +50,14 @@ const WebrtcRoomScreen: FC<Props> = ({
   }
   return (
     <View style={styles.container}>
-      {localStream ? (
+      {localStream?.current ? (
         <RTCView
           objectFit={'cover'}
           style={styles.localStream}
           streamURL={localStream?.current?.toURL()}
         />
       ) : null}
-      {remoteStream ? (
+      {remoteStream?.current ? (
         <RTCView
           objectFit={'cover'}
           style={styles.remoteStream}

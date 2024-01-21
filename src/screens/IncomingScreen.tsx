@@ -31,6 +31,7 @@ const IncomingCallScreen: FC<Props> = ({
       new RTCSessionDescription(remoteRTCMessage.current),
     );
     const sessionDescription = await peerConnection.current.createAnswer();
+    console.log(sessionDescription, 'sessionDescription');
     await peerConnection.current.setLocalDescription(sessionDescription);
     answerCall({
       callerId: otherUserId.current,

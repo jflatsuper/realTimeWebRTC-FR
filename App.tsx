@@ -24,7 +24,7 @@ export default function App({}) {
   );
   const otherUserId = useRef(null);
 
-  const socket = SocketIOClient('https://27cc-102-88-33-69.ngrok-free.app', {
+  const socket = SocketIOClient('https://b5f7-102-89-47-238.ngrok-free.app/', {
     transports: ['websocket'],
     autoConnect: true,
     query: {
@@ -36,13 +36,9 @@ export default function App({}) {
     new RTCPeerConnection({
       iceServers: [
         {
-          urls: 'stun:stun.l.google.com:19302',
-        },
-        {
-          urls: 'stun:stun1.l.google.com:19302',
-        },
-        {
-          urls: 'stun:stun2.l.google.com:19302',
+          url: 'turn:198.54.112.186:3478',
+          username: 'webrtc',
+          credential: '123456',
         },
       ],
     }),
@@ -60,9 +56,7 @@ export default function App({}) {
     socket.on('callAnswered', data => {
       remoteRTCMessage.current = data.rtcMessage;
       peerConnection.current
-        .setRemoteDescription(
-          new RTCSessionDescription(remoteRTCMessage.current),
-        )
+        .setRemoteDescription(new RTCSessionDescription(data.rtcMessage))
         .catch(err => {
           console.log('UNable to joiin', err);
         });
@@ -70,7 +64,8 @@ export default function App({}) {
     });
 
     socket.on('ICEcandidate', data => {
-      let message = data.rtcMessage;
+      console.log('ICEcandidate', data);
+      let message = data.iceCandidate;
       console.log('ICEcandidate', data);
       if (peerConnection.current) {
         peerConnection?.current
@@ -90,36 +85,14 @@ export default function App({}) {
       }
     });
 
-    let isFront = false;
-
-    // mediaDevices.enumerateDevices().then((sourceInfos: any) => {
-    //   let videoSourceId;
-    //   for (let i = 0; i < sourceInfos.length; i++) {
-    //     const sourceInfo = sourceInfos[i];
-    //     if (
-    //       sourceInfo.kind === 'videoinput' &&
-    //       sourceInfo.facing === (isFront ? 'user' : 'environment')
-    //     ) {
-    //       videoSourceId = sourceInfo.deviceId;
-    //     }
-    //   }
-    // });
     mediaDevices
       .getUserMedia({
         audio: true,
-        video: true,
-        // {
-        //   mandatory: {
-        //     minWidth: 500, // Provide your own width, height and frame rate here
-        //     minHeight: 300,
-        //     minFrameRate: 30,
-        //   },
-        //   facingMode: isFront ? 'user' : 'environment',
-        //   // optional: videoSourceId ? [{sourceId: videoSourceId}] : [],
-        // },
+        // video: true,
       })
       .then(stream => {
         // Got stream!
+        console.log('123456789');
         localStream.current = stream;
         stream
           .getTracks()
@@ -133,12 +106,31 @@ export default function App({}) {
     console.log(peerConnection.current._remoteStreams, 'test');
 
     peerConnection.current.ontrack = event => {
+      console.log('ontrack', event.streams[0]);
       remoteStream.current = event.streams[0];
+    };
+
+    peerConnection.current.ondatachannel = event => {
+      const receiveChannel = event.channel;
+      console.log('data channel received', receiveChannel);
+
+      receiveChannel.onopen = () => {
+        console.log('Data channel opened!');
+        // Now that the data channel is open, you can send a reply to Peer A
+        receiveChannel.send('Hello, PeerA!');
+      };
+
+      receiveChannel.onmessage = event => {
+        console.log('Message received from PeerA:', event.data);
+      };
+      peerConnection.current.channel = receiveChannel;
     };
 
     //Setup ice handling
     peerConnection.current.onicecandidate = event => {
       if (event.candidate) {
+        console.log('sending ICE candidate', otherUserId.current);
+        // console.log(JSON.stringify(peerConnection.current.localDescription));
         sendICEcandidate({
           calleeId: otherUserId.current,
           rtcMessage: {

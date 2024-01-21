@@ -30,6 +30,8 @@ const JoinScreen: FC<Props> = ({
     socket.emit('makeCall', data);
   }
   async function processCall() {
+    const sendChannel = peerConnection.current.createDataChannel('sendChannel');
+    sendChannel.onopen = e => console.log('open!!!!');
     const sessionDescription = await peerConnection.current.createOffer({});
     console.log(sessionDescription, 'sessionDescription');
     await peerConnection.current.setLocalDescription(sessionDescription);
